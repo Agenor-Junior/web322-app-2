@@ -2,8 +2,6 @@
 
 This is a WEB322 application project developed as part of the course.
 
-### Link to view on Replit:
-[https://09ad9737-537c-4f94-b05f-4c3ab191b400-00-1uddbw8i2i47c.spock.replit.dev/](https://09ad9737-537c-4f94-b05f-4c3ab191b400-00-1uddbw8i2i47c.spock.replit.dev/)
 
 ## Project Description
 This project was developed as part of the WEB322 course. It is an application using Node.js and Express to create a basic web server, with routes configured to display and manage information for items and categories.
