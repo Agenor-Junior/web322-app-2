@@ -1,6 +1,6 @@
 # WEB322-APP
 
-This is the WEB322 application project developed as part of the course.
+This is a WEB322 application project developed as part of the course.
 
 ### Link to view on Replit:
 [https://09ad9737-537c-4f94-b05f-4c3ab191b400-00-1uddbw8i2i47c.spock.replit.dev/](https://09ad9737-537c-4f94-b05f-4c3ab191b400-00-1uddbw8i2i47c.spock.replit.dev/)
