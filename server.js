@@ -1,192 +1,154 @@
 /*********************************************************************************
 
 WEB322 – Assignment 02
-I declare that this assignment is my own work in accordance with Seneca  Academic Policy.  No part *  of this assignment has been copied manually or electronically from any other source (including 3rd party web sites) or distributed to other students.
+I declare that this assignment is my own work in accordance with Seneca Academic Policy. 
+No part of this assignment has been copied manually or electronically from any other source 
+(including 3rd party web sites) or distributed to other students.
 
 Name: Agenor Dionizio da Silva Junior
 Student ID: 138121223
-Date: Oct 09, 2024
+Date: Oct 31, 2024
 Replit Web App URL: 
 GitHub Repository URL: https://github.com/Agenor-Junior/web322-app.git
+
 ********************************************************************************/
 
 const express = require("express");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+const streamifier = require("streamifier");
 const path = require("path");
+const storeService = require("./store-service");
 const app = express();
-const storeService = require("./store-service"); //importing my module
 
-// Setting the port number to listen on
+// Port configuration
 const HTTP_PORT = process.env.PORT || 8080;
 
-//CSS & images, JS
+// Cloudinary configuration
+cloudinary.config({
+    cloud_name: "dzpqolir8",
+    api_key: "276645628487539",
+    api_secret: "0fIuUfpETj4oXp50Uz1xZSURmkQ",
+    secure: true
+});
+
+const upload = multer();
+
+// Middleware for static files
 app.use(express.static("public"));
 
-// / route:
+// Routes
+
+// Home route
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/about.html"));
+    res.sendFile(path.join(__dirname, "/views/about.html"));
 });
 
-// HOME route:
-app.get("/home", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/home.html"));
-});
-
-// ABOUT route:
+// About route
 app.get("/about", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/about.html"));
+    res.sendFile(path.join(__dirname, "/views/about.html"));
 });
 
-// SHOP route: (Static HTML)
+// Home route (redundant but keeping as per original code)
+app.get("/home", (req, res) => {
+    res.sendFile(path.join(__dirname, "/views/home.html"));
+});
+
+// Shop route
 app.get("/shop", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/shop.html"));
+    res.sendFile(path.join(__dirname, "/views/shop.html"));
 });
 
-// shop route:
-app.get("/api/shop", (req, res) => {
-  storeService
-    .getPublishedItems()
-    .then((data) => {
-      res.json(data);
-    })
-    .catch((err) => {
-      res.json({ message: err });
-    });
+// Add item form
+app.get("/add", (req, res) => {
+    res.sendFile(path.join(__dirname, "/views/addItem.html"));
 });
 
-// ITEMS route: (Static HTML)
 app.get("/items", (req, res) => {
   res.sendFile(path.join(__dirname, "/views/items.html"));
 });
 
-// items route:
+
+// Shop items as JSON
+app.get("/api/shop", (req, res) => {
+    storeService.getPublishedItems()
+        .then((data) => res.json(data))
+        .catch((err) => res.json({ message: err }));
+});
+
+// List all items
 app.get("/api/items", (req, res) => {
-  storeService
-    .getAllItems()
-    .then((data) => {
-      res.json(data);
-    })
-    .catch((err) => {
-      res.json({ message: err });
-    });
+    storeService.getAllItems()
+        .then((data) => res.json(data))
+        .catch((err) => res.json({ message: err }));
 });
 
-// CATEGORIES route: (Static HTML)
+// Categories list
 app.get("/categories", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/categories.html"));
+    res.sendFile(path.join(__dirname, "/views/categories.html"));
 });
 
-// CATEGORIES route:
 app.get("/api/categories", (req, res) => {
-  storeService
-    .getCategories()
-    .then((data) => {
-      // Send the fetched categories data to the client as JSON
-      res.json(data);
+    storeService.getCategories()
+        .then((data) => res.json(data))
+        .catch((err) => res.json({ message: err }));
+});
+
+// Route to handle adding a new item with image upload
+app.post("/items/add", upload.single("featureImage"), async (req, res) => {
+    let imageUrl = "";
+
+    try {
+        // Upload image if file exists
+        if (req.file) {
+            const streamUpload = (req) => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream((error, result) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(result);
+                        }
+                    });
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+            };
+
+            const uploadResult = await streamUpload(req);
+            imageUrl = uploadResult.url;
+        }
+
+        // Set item properties
+        req.body.featureImage = imageUrl;
+        req.body.published = req.body.published ? true : false;
+
+        // Add the item to the store
+        await storeService.addItem(req.body);
+
+        // Redirect to items page
+        res.redirect("/items");
+    } catch (err) {
+        console.error("Erro durante o processo de adição de item:", err);
+
+        if (!res.headersSent) {
+            res.status(500).send("Erro ao adicionar item.");
+        }
+    }
+});
+
+// Custom 404 page for unmatched routes
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, "/views/404.html"));
+});
+
+// Start the server
+storeService.initialize()
+    .then(() => {
+        app.listen(HTTP_PORT, () => {
+            console.log(`Express http server listening on port: ${HTTP_PORT}`);
+        });
     })
     .catch((err) => {
-      // Return an error message in the correct format
-      res.json({ message: err });
+        console.log("Failed to initialize data:", err);
     });
-});
 
-// Handle unmatched routes with a custom 404 page
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, "/views/404.html"));
-});
-
-// Listen on this port to run the website locally
-storeService
-  .initialize()
-  .then(() => {
-    app.listen(HTTP_PORT, () => {
-      console.log(`Express http server listening on port: ${HTTP_PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.log("Failed to initialize data: ", err);
-  });
-
-//app.listen(3000)
-
-let count = 1; // global counter
-let maxCount = 5; // global maximum
-
-let myCountInterval = setInterval(function () {
-  console.log("Hello after " + count++ + " second(s)");
-  checkMaximum();
-}, 1000);
-
-let checkMaximum = function () {
-  if (count > maxCount) {
-    clearInterval(myCountInterval);
-  }
-};
-
-console.log(__dirname);
-// outputs /Users/pcrawford
-
-console.log(__filename);
-// outputs /Users/pcrawford/ex1.js
-
-// outputs "Hello after 1 second" to the console
-setTimeout(function () {
-  console.log("Hello after 1 second");
-}, 1000);
-
-let myURL = new URL(
-  "https://myProductInventory.com/products?sort=asc&onSale=true"
-);
-
-for (const [key, value] of myURL.searchParams) {
-  console.log("key: " + key + " value: " + value);
-}
-
-/*
-  key: sort value: asc
-  key: onSale value: true
-  */
-
-const EventEmitter = require("events");
-
-const myEmitter = new EventEmitter();
-
-myEmitter.on("event", function () {
-  console.log("an event occurred!");
-});
-
-myEmitter.emit("event");
-
-const readline = require("readline");
-
-const rl = readline.createInterface(process.stdin, process.stdout);
-
-rl.question("First Name: ", function (fName) {
-  rl.question("Last Name: ", function (lName) {
-    console.log("Hello: " + fName + " " + lName);
-    rl.close();
-  });
-});
-
-console.log("Absolute path to about.html");
-
-console.log(path.join(__dirname, "/about.html")); // with leading slash
-console.log(path.join(__dirname, "//about.html")); // with multiple leading slashes
-console.log(path.join(__dirname, "about.html")); // without leading slash
-console.log(path.join(__dirname, "about.html")); // with incorrect leading slash
-
-const fs = require("fs");
-
-fs.readdir("img", function (err, filesArray) {
-  if (err) console.log(err);
-  else {
-    console.log(filesArray);
-  }
-});
-
-fs.readFile("names.csv", function (err, fileData) {
-  if (err) console.log(err);
-  else {
-    namesArray = fileData.toString().split(",");
-    console.log(namesArray);
-  }
-});
