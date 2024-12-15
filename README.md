@@ -15,6 +15,6 @@ This project was developed as part of the WEB322 course. It is an application us
 ## Installation and Running Locally
 To run the project locally:
 
-1. Clone this repository
+1. Clone this repository:
    ```bash
    git clone https://github.com/your-username/web322-app.git
