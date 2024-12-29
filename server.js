@@ -1,4 +1,4 @@
-/*********************************************************************************
+/********************************************************************************
 
 WEB322 – Assignment 02
 I declare that this assignment is my own work in accordance with Seneca Academic Policy. 
